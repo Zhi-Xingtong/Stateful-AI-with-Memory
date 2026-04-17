@@ -1,4 +1,5 @@
 from memory_store import Memory
+from change_memory import change
 from prompt_builder import Build
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -53,16 +54,16 @@ messages = [
 ]
 
 while True:
+
+    if(len(messages) > 20): 
+        del messages[1:3]
+
     user_input = input("You: ")
 
     messages.append({"role": "user", "content": user_input})
 
     if "I am" in user_input:
         memory.add("user_state", "facts", user_input)
-    
-    system_prompt = Build(memory.get())
-
-    messages[0] = {"role": "system", "content": system_prompt}
 
     response = client.chat.completions.create(
         model = "gpt-5-nano",
@@ -73,3 +74,12 @@ while True:
     print("AI: ", reply)
 
     messages.append({"role": "assistant", "content": reply})
+
+    new_mem = change(user_input, reply)
+
+    if new_mem[0] != "none":
+        memory.add("agent_state", new_mem[0], new_mem[1])
+    
+    system_prompt = Build(memory.get())
+
+    messages[0] = {"role": "system", "content": system_prompt}
