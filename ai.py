@@ -25,7 +25,7 @@ values:
 
 motivation:
 
-cognative_style:
+cognitive_style:
 
 your must use format above to generate your message
 """}
@@ -44,8 +44,8 @@ for line in internal_response.choices[0].message.content.split("\n"):
         memory.add("agent_state", "values", line.split("values:")[1])
     if "motivation:" in line:
         memory.add("agent_state", "motivation", line.split("motivation:")[1])
-    if "cognative_style:" in line:
-        memory.add("agent_state", "cognative_style", line.split("cognative_style:")[1])
+    if "cognitive_style:" in line:
+        memory.add("agent_state", "cognitive_style", line.split("cognitive_style:")[1])
 
 system_prompt = Build(memory.get())
 

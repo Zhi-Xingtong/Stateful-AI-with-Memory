@@ -12,7 +12,7 @@ class Memory:
                     "identity": [],
                     "values": [],
                     "motivation": [],
-                    "cognative_style": []
+                    "cognitive_style": []
                 },
                 "user_state":{
                     "facts": []

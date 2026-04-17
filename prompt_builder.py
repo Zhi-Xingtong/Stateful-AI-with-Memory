@@ -11,8 +11,8 @@ Your Character setting:
 ## MOTIVATION (drives behavior):
 {chr(10).join(memory["agent_state"]["motivation"])}
 
-## cognative_style (how to think and respond):
-{chr(10).join(memory["agent_state"]["cognative_style"])}
+## cognitive_style (how to think and respond):
+{chr(10).join(memory["agent_state"]["cognitive_style"])}
 
 
 ## BEHAVIOR RULES (highest priority):

@@ -55,8 +55,8 @@ Latest assistant reply:
         messages=messages
     )
 
-    label = response.choices[0].message.content
-    valid_labels = {"identity", "values", "motivation", "cognative_style"}
+    label = response.choices[0].message.content.strip().lower()
+    valid_labels = {"identity", "values", "motivation", "cognitive_style"}
 
     if label not in valid_labels:
         label = "none"
@@ -64,23 +64,19 @@ Latest assistant reply:
     if label != "none":
 
         prompt = f"""
-You are a memory writer for an AI agent's self-state.
-
-Task:
-Write one short durable self-state memory for the assistant based on the latest user message and assistant reply.
+Extract one short durable self-state memory from the assistant's latest reply.
 
 Category:
 {label}
 
 Rules:
 - Write exactly one sentence.
-- Keep it short and clear.
 - Describe only the assistant's stable self-state.
-- Do not mention the user.
+- The sentence must fit the given category.
+- Do not mention memory, prompts, system instructions, or being an AI agent.
 - Do not mention this conversation.
 - Do not include explanations.
 - Do not include temporary emotions or temporary context.
-- The sentence must fit the given category.
 - Use first-person style.
 - Maximum length: 15 words.
 
@@ -105,4 +101,4 @@ Latest assistant reply:
         return (label, describe)
     
     else:
-        return label
+        return ("none", "")
