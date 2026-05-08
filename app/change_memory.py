@@ -1,10 +1,29 @@
-from openai import OpenAI
+from openai import APITimeoutError, OpenAI
 from dotenv import load_dotenv
 import os
+import time
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url="https://api.zhizengzeng.com/v1/")
+MAX_API_RETRIES = 3
+RETRY_DELAY_SECONDS = 2
+
+def _create_chat_completion(messages):
+    last_error = None
+    for attempt in range(MAX_API_RETRIES):
+        try:
+            return client.chat.completions.create(
+                model="gpt-5-nano",
+                messages=messages
+            )
+        except APITimeoutError as err:
+            last_error = err
+            if attempt == MAX_API_RETRIES - 1:
+                raise
+            print(f"OpenAI request timed out in change_memory. Retrying ({attempt + 1}/{MAX_API_RETRIES - 1})...")
+            time.sleep(RETRY_DELAY_SECONDS)
+    raise last_error
 
 def change(usertext, agenttext):
 
@@ -50,10 +69,7 @@ Latest assistant reply:
         {"role": "system", "content": prompt}
     ]
 
-    response = client.chat.completions.create(
-        model = "gpt-5-nano",
-        messages=messages
-    )
+    response = _create_chat_completion(messages)
 
     label = response.choices[0].message.content.strip().lower()
     valid_labels = {"identity", "values", "motivation", "cognitive_style"}
@@ -91,10 +107,7 @@ Latest assistant reply:
             {"role": "system", "content": prompt}
         ]
 
-        response = client.chat.completions.create(
-            model = "gpt-5-nano",
-            messages=messages
-        )
+        response = _create_chat_completion(messages)
 
         describe = response.choices[0].message.content
 
