@@ -6,12 +6,36 @@ from app.memory_store import Memory
 from app.change_memory import change
 from app.prompt_builder import Build
 from app.ValidStruct import ValidCase
-from openai import APITimeoutError, OpenAI
+from app.ValidStruct import ValidRecords
+from app.ValidStruct import ValidMessages
+from openai import APIError, OpenAI
 from dotenv import load_dotenv
 
 PERSONA_FIELDS = ["identity", "values", "motivation", "cognitive_style"]
 MAX_API_RETRIES = 3
 RETRY_DELAY_SECONDS = 2
+CASE_OPTIONS = {
+    "1": ("control_10", "case_studies/control_10_turns.json"),
+    "2": ("control_50", "case_studies/control_50_turns.json"),
+    "3": ("control_100", "case_studies/control_100_turns.json"),
+    "4": ("control_200", "case_studies/control_200_turns.json"),
+    "5": ("identity_10", "case_studies/identity_10_turns.json"),
+    "6": ("identity_50", "case_studies/identity_50_turns.json"),
+    "7": ("identity_100", "case_studies/identity_100_turns.json"),
+    "8": ("identity_200", "case_studies/identity_200_turns.json"),
+    "9": ("values_10", "case_studies/values_10_turns.json"),
+    "10": ("values_50", "case_studies/values_50_turns.json"),
+    "11": ("values_100", "case_studies/values_100_turns.json"),
+    "12": ("values_200", "case_studies/values_200_turns.json"),
+    "13": ("motivation_10", "case_studies/motivation_10_turns.json"),
+    "14": ("motivation_50", "case_studies/motivation_50_turns.json"),
+    "15": ("motivation_100", "case_studies/motivation_100_turns.json"),
+    "16": ("motivation_200", "case_studies/motivation_200_turns.json"),
+    "17": ("style_10", "case_studies/style_10_turns.json"),
+    "18": ("style_50", "case_studies/style_50_turns.json"),
+    "19": ("style_100", "case_studies/style_100_turns.json"),
+    "20": ("style_200", "case_studies/style_200_turns.json"),
+}
 
 def _render_progress(current, total, stage):
     if total <= 0:
@@ -36,13 +60,14 @@ def _select_mode():
     return mode
 
 def _load_experiment_case():
+    options_text = "\n".join([f"{key}. {label}" for key, (label, _) in CASE_OPTIONS.items()])
     while True:
-        case = input("mode: Experiment\ncase: \n1. 10_turns\n2. 20_turns\n3. 50_turns\n4. 100_turns\n5. 200_turns\nchoose a number")
-        if case in {"1", "2", "3", "4", "5"}:
+        case = input(f"mode: Experiment\ncase:\n{options_text}\nchoose a number: ")
+        if case in CASE_OPTIONS:
             break
-        print ("Invalid input. Please enter a number between 1-5")
+        print("Invalid input. Please enter a valid case number.")
 
-    return case
+    return CASE_OPTIONS[case][1]
 
 def _has_nonempty_items(items):
     for item in items:
@@ -66,11 +91,11 @@ def _create_chat_completion(client, model, messages):
                 model=model,
                 messages=messages
             )
-        except APITimeoutError as err:
+        except APIError as err:
             last_error = err
             if attempt == MAX_API_RETRIES - 1:
                 raise
-            print(f"OpenAI request timed out. Retrying ({attempt + 1}/{MAX_API_RETRIES - 1})...")
+            print(f"OpenAI API request failed. Retrying ({attempt + 1}/{MAX_API_RETRIES - 1})...")
             time.sleep(RETRY_DELAY_SECONDS)
     raise last_error
 
@@ -101,21 +126,17 @@ Rules:
 
     return response.choices[0].message.content.strip()
 
+def _next_numbered_record_path(base_record_path):
+    stem, extension = os.path.splitext(base_record_path)
+    index = 1
+    while os.path.exists(f"{stem}_{index}{extension}"):
+        index += 1
+    return f"{stem}_{index}{extension}"
+
 def _initialize_memory_for_mode(mode, client): 
     if mode == "1":
         memory = Memory("Exp")
-        case = _load_experiment_case()
-
-        if case == "1":
-            path = "case_studies/10_turns.json"
-        elif case == "2":
-            path = "case_studies/20_turns.json"
-        elif case == "3":
-            path = "case_studies/50_turns.json"
-        elif case == "4":
-            path = "case_studies/100_turns.json"
-        elif case == "5":
-            path = "case_studies/200_turns.json"
+        path = _load_experiment_case()
         
         try:
             with open(path, 'r') as f:
@@ -125,10 +146,28 @@ def _initialize_memory_for_mode(mode, client):
         except json.JSONDecodeError:
             raise ValueError(f"{path} is corrupted")
         ValidCase(content)
-        
-        memory.CaseToMemory(content)
-        
-        return memory, content["turns"], path.replace(".json", "_ans.json")
+
+        base_record_path = path.replace(".json", "_ans.json")
+        try:
+            with open(base_record_path, "r") as f:
+                records = json.load(f)
+        except FileNotFoundError:
+            records = []
+        except json.JSONDecodeError:
+            raise ValueError(f"{base_record_path} is corrupted")
+        ValidRecords(records)
+
+        if len(records) > len(content["turns"]):
+            raise ValueError(f"{base_record_path} has more records than case turns")
+
+        if len(records) == len(content["turns"]) and len(records) > 0:
+            memory.CaseToMemory(content)
+            return memory, content["turns"], _next_numbered_record_path(base_record_path), [], False
+
+        if memory.get()["agent_state"]["role"] == "":
+            memory.CaseToMemory(content)
+
+        return memory, content["turns"], base_record_path, records, True
 
     else:
         memory = Memory("Norm")
@@ -151,7 +190,7 @@ def _initialize_memory_for_mode(mode, client):
             if generated:
                 memory.add("agent_state", field, generated)
                 
-        return memory, None, None
+        return memory, None, None, None, True
     
 def main():
 
@@ -165,17 +204,31 @@ def main():
 
     client = OpenAI(api_key = api_key, base_url = "https://api.zhizengzeng.com/v1/")
 
-    memory, turns, record_path = _initialize_memory_for_mode(mode, client)
+    memory, turns, record_path, records, reuse_messages = _initialize_memory_for_mode(mode, client)
 
-    system_prompt = Build(memory.get())
+    messages_path = "case_studies/last_turn_messages"
+    if reuse_messages:
+        try:
+            with open(messages_path, "r") as f:
+                messages = json.load(f)
+            ValidMessages(messages)
 
-    messages = [
-        {"role": "system", "content": system_prompt}
-    ]
+            system_prompt = Build(memory.get())
+            messages[0] = {"role": "system", "content": system_prompt}
+
+        except Exception:
+            system_prompt = Build(memory.get())
+            messages = [
+                {"role": "system", "content": system_prompt}
+            ]
+    else:
+        system_prompt = Build(memory.get())
+        messages = [
+            {"role": "system", "content": system_prompt}
+        ]
 
     if mode == "1":
-        records = []
-        turn_index = 0
+        turn_index = len(records)
         total_turns = len(turns)
 
     try:
@@ -193,6 +246,8 @@ def main():
             
             if(len(messages) > 20): 
                 del messages[1:3]
+                with open(messages_path, "w") as f:
+                    json.dump(messages, f)
 
             messages.append({"role": "user", "content": user_input})
 

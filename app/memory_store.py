@@ -5,8 +5,16 @@ class Memory:
     def __init__(self, mode):
         if mode not in {"Exp", "Norm"}:
             raise ValueError("mode value not valid")
+        
         if mode == "Exp": 
             self.path = "memory_exp.json"
+        else:
+            self.path = "memory_norm.json"
+
+        try:
+            with open(self.path, "r") as f:
+                self.memory = json.load(f)
+        except FileNotFoundError:
             self.memory = {
                 "agent_state":{
                     "role": "",
@@ -19,27 +27,13 @@ class Memory:
                     "facts": []
                 }
             }
-        else:
-            self.path = "memory_norm.json"
-            try:
-                with open(self.path, "r") as f:
-                    self.memory = json.load(f)
-            except FileNotFoundError:
-                self.memory = {
-                    "agent_state":{
-                        "role": "",
-                        "identity": [],
-                        "values": [],
-                        "motivation": [],
-                        "cognitive_style": []
-                    },
-                    "user_state":{
-                        "facts": []
-                    }
-                }
-            except json.JSONDecodeError:
+        except json.JSONDecodeError:
+            if mode == "Exp": 
+                raise ValueError("memory_exp.json is corrupted")
+            else:
                 raise ValueError("memory_norm.json is corrupted")
-            ValidMemory(self.memory)
+
+        ValidMemory(self.memory)
     
     def CaseToMemory(self, case):
         self.memory = {

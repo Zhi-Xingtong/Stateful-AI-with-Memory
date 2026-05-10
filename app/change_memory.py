@@ -1,4 +1,4 @@
-from openai import APITimeoutError, OpenAI
+from openai import APIError, OpenAI
 from dotenv import load_dotenv
 import os
 import time
@@ -17,11 +17,11 @@ def _create_chat_completion(messages):
                 model="gpt-5-nano",
                 messages=messages
             )
-        except APITimeoutError as err:
+        except APIError as err:
             last_error = err
             if attempt == MAX_API_RETRIES - 1:
                 raise
-            print(f"OpenAI request timed out in change_memory. Retrying ({attempt + 1}/{MAX_API_RETRIES - 1})...")
+            print(f"OpenAI API request failed in change_memory. Retrying ({attempt + 1}/{MAX_API_RETRIES - 1})...")
             time.sleep(RETRY_DELAY_SECONDS)
     raise last_error
 
