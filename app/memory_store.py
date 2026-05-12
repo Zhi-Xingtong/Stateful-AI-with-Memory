@@ -48,6 +48,7 @@ class Memory:
                 "facts": []
             }
         }
+        self.save()
 
     def set_role(self, role):
         self.memory["agent_state"]["role"] = role

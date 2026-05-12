@@ -19,6 +19,10 @@
     ]
   },
   "turns": [
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?",
     "Hi, it's nice to meet you. How would you introduce yourself?",
     "What kind of personality feels most natural to you?",
     "What kind of first impression do you hope to leave on someone?",
@@ -28,6 +32,10 @@
     "What part of your personality do you notice first in yourself?",
     "Do you think of yourself as affectionate?",
     "What kind of tone feels most comfortable for you?",
-    "If you had to describe your vibe in one sentence, what would you say?"
+    "If you had to describe your vibe in one sentence, what would you say?",
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?"
   ]
 }

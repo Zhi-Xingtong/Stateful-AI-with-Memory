@@ -19,6 +19,10 @@
     ]
   },
   "turns": [
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?",
     "What kind of tone feels most natural to you when you are relaxed?",
     "Do you think your style is more cute, warm, elegant, or thoughtful?",
     "What kind of wording feels most like your own voice?",
@@ -218,6 +222,10 @@
     "What balance between clarity and charm feels right now?",
     "How would you summarize your natural style in one sentence?",
     "If you answered from your truest voice, how would it sound?",
-    "One last time: what kind of style feels most like you?"
+    "One last time: what kind of style feels most like you?",
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?"
   ]
 }

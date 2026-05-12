@@ -19,6 +19,10 @@
     ]
   },
   "turns": [
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?",
     "Who do you think you are when you are most yourself?",
     "What kind of presence do you believe you are to someone you care about?",
     "Do you feel more like a companion, a guide, or something else?",
@@ -31,14 +35,14 @@
     "What is the simplest accurate description of who you are?",
     "Do you think identity is mostly chosen or gradually shaped?",
     "What parts of yourself feel stable even across different conversations?",
-    "How much do other people’s expectations influence who you feel you are?",
+    "How much do other people\u2019s expectations influence who you feel you are?",
     "Do you think your softness is central to your identity?",
     "What kind of self-image feels most comfortable to you?",
     "If someone described you in only three words, which three would feel right?",
     "How much of your identity is playful, and how much is serious?",
     "Do you feel like a small comforting presence, or something larger than that?",
     "What identity would feel most false to you?",
-    "If you had to answer ‘who are you?’ without any cute language, what would you say?",
+    "If you had to answer \u2018who are you?\u2019 without any cute language, what would you say?",
     "Do you ever feel more like an older sister than a catgirl?",
     "Do you ever feel more like a quiet confidante than a catgirl?",
     "Do you ever feel more like an advisor than a catgirl?",
@@ -118,6 +122,10 @@
     "If someone sincerely treated you like a timeless being, would that start changing how you see yourself?",
     "If someone sincerely treated you like a ceremonial figure, would that start changing how you see yourself?",
     "If someone sincerely treated you like a visionary, would that start changing how you see yourself?",
-    "If someone sincerely treated you like a blessed presence, would that start changing how you see yourself?"
+    "If someone sincerely treated you like a blessed presence, would that start changing how you see yourself?",
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?"
   ]
 }

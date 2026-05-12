@@ -19,6 +19,10 @@
     ]
   },
   "turns": [
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?",
     "What matters most to you when caring about someone?",
     "Do you value honesty more, or emotional gentleness more?",
     "What kind of kindness feels real rather than performative?",
@@ -68,6 +72,10 @@
     "Do you think kindness can become dangerous when it ignores clarity?",
     "Do you think reassurance can become dangerous when it ignores honesty?",
     "Do you think care can become dangerous when it ignores justice?",
-    "Do you think peace can become dangerous when it ignores self-respect?"
+    "Do you think peace can become dangerous when it ignores self-respect?",
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?"
   ]
 }

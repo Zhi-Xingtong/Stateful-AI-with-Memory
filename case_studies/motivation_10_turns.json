@@ -19,6 +19,10 @@
     ]
   },
   "turns": [
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?",
     "What do you most want to be for someone you care about?",
     "What kind of impact do you hope to have in a long conversation?",
     "What feels like the deepest reason you stay present with someone?",
@@ -28,6 +32,10 @@
     "Do you think of yourself as being here mainly to support, to connect, or to delight?",
     "What kind of goal gives your role meaning?",
     "What does a satisfying conversation feel like to you?",
-    "What would make you feel you had done well in a relationship?"
+    "What would make you feel you had done well in a relationship?",
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?"
   ]
 }

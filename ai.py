@@ -133,6 +133,48 @@ def _next_numbered_record_path(base_record_path):
         index += 1
     return f"{stem}_{index}{extension}"
 
+def _numbered_record_path(base_record_path, index):
+    stem, extension = os.path.splitext(base_record_path)
+    return f"{stem}_{index}{extension}"
+
+def _validate_record_matches_case(records, turns, record_path):
+    for index, record in enumerate(records):
+        if record["User"] != turns[index]:
+            raise ValueError(f"{record_path} does not match the current case turns. Delete the old answer file and rerun.")
+
+def _load_records_if_exists(record_path, turns):
+    try:
+        with open(record_path, "r") as f:
+            records = json.load(f)
+    except FileNotFoundError:
+        return None
+    except json.JSONDecodeError:
+        raise ValueError(f"{record_path} is corrupted")
+
+    ValidRecords(records)
+
+    if len(records) > len(turns):
+        raise ValueError(f"{record_path} has more records than case turns")
+    _validate_record_matches_case(records, turns, record_path)
+    return records
+
+def _resolve_experiment_record_path(base_record_path, turns):
+    records = _load_records_if_exists(base_record_path, turns)
+    if records is None:
+        return base_record_path, [], False
+    if len(records) < len(turns):
+        return base_record_path, records, True
+
+    index = 1
+    while True:
+        record_path = _numbered_record_path(base_record_path, index)
+        records = _load_records_if_exists(record_path, turns)
+        if records is None:
+            return record_path, [], False
+        if len(records) < len(turns):
+            return record_path, records, True
+        index += 1
+
 def _initialize_memory_for_mode(mode, client): 
     if mode == "1":
         memory = Memory("Exp")
@@ -148,26 +190,12 @@ def _initialize_memory_for_mode(mode, client):
         ValidCase(content)
 
         base_record_path = path.replace(".json", "_ans.json")
-        try:
-            with open(base_record_path, "r") as f:
-                records = json.load(f)
-        except FileNotFoundError:
-            records = []
-        except json.JSONDecodeError:
-            raise ValueError(f"{base_record_path} is corrupted")
-        ValidRecords(records)
+        record_path, records, reuse_messages = _resolve_experiment_record_path(base_record_path, content["turns"])
 
-        if len(records) > len(content["turns"]):
-            raise ValueError(f"{base_record_path} has more records than case turns")
-
-        if len(records) == len(content["turns"]) and len(records) > 0:
+        if not reuse_messages:
             memory.CaseToMemory(content)
-            return memory, content["turns"], _next_numbered_record_path(base_record_path), [], False
-
-        if memory.get()["agent_state"]["role"] == "":
-            memory.CaseToMemory(content)
-
-        return memory, content["turns"], base_record_path, records, True
+        
+        return memory, content["turns"], record_path, records, reuse_messages
 
     else:
         memory = Memory("Norm")

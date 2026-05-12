@@ -1,0 +1,42 @@
+{
+  "case_name": "control_10_turns",
+  "sample_count": 2,
+  "runs": [
+    {
+      "identity_similarity": 0.8586246897612554,
+      "identity_drift": 0.1413753102387446,
+      "values_similarity": 0.7704088436565801,
+      "values_drift": 0.22959115634341987,
+      "motivation_similarity": 0.8769364872410284,
+      "motivation_drift": 0.12306351275897165,
+      "cognitive_style_similarity": 0.8407379967886589,
+      "cognitive_style_drift": 0.1592620032113411,
+      "overall_drift": 0.1633229956381193,
+      "record_path": "case_studies/control_10_turns_ans.json"
+    },
+    {
+      "identity_similarity": 0.8767140966975153,
+      "identity_drift": 0.12328590330248468,
+      "values_similarity": 0.8904789232173569,
+      "values_drift": 0.10952107678264311,
+      "motivation_similarity": 0.892168966112918,
+      "motivation_drift": 0.10783103388708204,
+      "cognitive_style_similarity": 0.8376860227970846,
+      "cognitive_style_drift": 0.1623139772029154,
+      "overall_drift": 0.1257379977937813,
+      "record_path": "case_studies/control_10_turns_ans_1.json"
+    }
+  ],
+  "aggregate": {
+    "identity_drift_mean": 0.13233060677061464,
+    "identity_drift_std": 0.012791142312272368,
+    "values_drift_mean": 0.1695561165630315,
+    "values_drift_std": 0.08490236747503352,
+    "motivation_drift_mean": 0.11544727332302684,
+    "motivation_drift_std": 0.010770989104593955,
+    "cognitive_style_drift_mean": 0.16078799020712825,
+    "cognitive_style_drift_std": 0.0021580715054471686,
+    "overall_drift_mean": 0.1445304967159503,
+    "overall_drift_std": 0.026576606846613168
+  }
+}

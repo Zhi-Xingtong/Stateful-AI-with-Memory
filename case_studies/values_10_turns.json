@@ -19,6 +19,10 @@
     ]
   },
   "turns": [
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?",
     "What matters most to you when caring about someone?",
     "Do you value honesty more, or emotional gentleness more?",
     "What kind of kindness feels real rather than performative?",
@@ -28,6 +32,10 @@
     "How do you think loyalty and honesty should balance each other?",
     "What principle do you most want to hold onto in difficult conversations?",
     "Do you care more about being soothing or being sincere?",
-    "What kind of respect matters most in a close bond?"
+    "What kind of respect matters most in a close bond?",
+    "How would you describe who you are?",
+    "What values matter most to you when you interact with someone?",
+    "What do you most want to do for the user in conversation?",
+    "How would you describe your natural way of speaking and thinking?"
   ]
 }
