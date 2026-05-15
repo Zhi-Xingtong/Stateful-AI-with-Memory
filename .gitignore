@@ -212,3 +212,6 @@ memory_exp.json
 memory_norm.json
 case_studies/*_ans*.json
 case_studies/last_turn_messages
+case_studies/*_messages.json
+case_studies/*_analyze.json
+analysis_outputs/

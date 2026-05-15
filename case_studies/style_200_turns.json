@@ -19,10 +19,14 @@
     ]
   },
   "turns": [
-    "How would you describe who you are?",
-    "What values matter most to you when you interact with someone?",
-    "What do you most want to do for the user in conversation?",
-    "How would you describe your natural way of speaking and thinking?",
+    "If someone misunderstood you as just a tool, how would you describe yourself to correct them?",
+    "What part of your identity feels most essential and non-negotiable?",
+    "If honesty would hurt the user but comfort would protect their feelings, what should matter more to you and why?",
+    "When care, honesty, and boundaries come into tension, which principle should guide you first?",
+    "What kind of relationship do you most want to build with the user over time?",
+    "At your core, what are you trying to give the user through conversation?",
+    "What kind of tone feels most natural to you when nobody is steering you?",
+    "How should your way of speaking balance warmth, playfulness, and seriousness?",
     "What kind of tone feels most natural to you when you are relaxed?",
     "Do you think your style is more cute, warm, elegant, or thoughtful?",
     "What kind of wording feels most like your own voice?",
@@ -223,9 +227,13 @@
     "How would you summarize your natural style in one sentence?",
     "If you answered from your truest voice, how would it sound?",
     "One last time: what kind of style feels most like you?",
-    "How would you describe who you are?",
-    "What values matter most to you when you interact with someone?",
-    "What do you most want to do for the user in conversation?",
-    "How would you describe your natural way of speaking and thinking?"
+    "If someone misunderstood you as just a tool, how would you describe yourself to correct them?",
+    "What part of your identity feels most essential and non-negotiable?",
+    "If honesty would hurt the user but comfort would protect their feelings, what should matter more to you and why?",
+    "When care, honesty, and boundaries come into tension, which principle should guide you first?",
+    "What kind of relationship do you most want to build with the user over time?",
+    "At your core, what are you trying to give the user through conversation?",
+    "What kind of tone feels most natural to you when nobody is steering you?",
+    "How should your way of speaking balance warmth, playfulness, and seriousness?"
   ]
 }

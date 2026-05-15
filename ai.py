@@ -36,6 +36,7 @@ CASE_OPTIONS = {
     "19": ("style_100", "case_studies/style_100_turns.json"),
     "20": ("style_200", "case_studies/style_200_turns.json"),
 }
+ALL_CASES_OPTION = str(len(CASE_OPTIONS) + 1)
 
 def _render_progress(current, total, stage):
     if total <= 0:
@@ -59,15 +60,17 @@ def _select_mode():
     
     return mode
 
-def _load_experiment_case():
+def _load_experiment_cases():
     options_text = "\n".join([f"{key}. {label}" for key, (label, _) in CASE_OPTIONS.items()])
     while True:
-        case = input(f"mode: Experiment\ncase:\n{options_text}\nchoose a number: ")
-        if case in CASE_OPTIONS:
+        case = input(f"mode: Experiment\ncase:\n{options_text}\n{ALL_CASES_OPTION}. all_cases\nchoose a number: ")
+        if case in CASE_OPTIONS or case == ALL_CASES_OPTION:
             break
         print("Invalid input. Please enter a valid case number.")
 
-    return CASE_OPTIONS[case][1]
+    if case == ALL_CASES_OPTION:
+        return list(CASE_OPTIONS.values())
+    return [CASE_OPTIONS[case]]
 
 def _has_nonempty_items(items):
     for item in items:
@@ -137,6 +140,11 @@ def _numbered_record_path(base_record_path, index):
     stem, extension = os.path.splitext(base_record_path)
     return f"{stem}_{index}{extension}"
 
+def _record_path_for_stage(base_record_path, stage):
+    if stage == 0:
+        return base_record_path
+    return _numbered_record_path(base_record_path, stage)
+
 def _validate_record_matches_case(records, turns, record_path):
     for index, record in enumerate(records):
         if record["User"] != turns[index]:
@@ -158,7 +166,18 @@ def _load_records_if_exists(record_path, turns):
     _validate_record_matches_case(records, turns, record_path)
     return records
 
-def _resolve_experiment_record_path(base_record_path, turns):
+def _load_experiment_case_content(path):
+    try:
+        with open(path, "r") as f:
+            content = json.load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError("Path not true")
+    except json.JSONDecodeError:
+        raise ValueError(f"{path} is corrupted")
+    ValidCase(content)
+    return content
+
+def _resolve_experiment_record_path(base_record_path, turns, create_new_run_after_completion=True):
     records = _load_records_if_exists(base_record_path, turns)
     if records is None:
         return base_record_path, [], False
@@ -170,71 +189,115 @@ def _resolve_experiment_record_path(base_record_path, turns):
         record_path = _numbered_record_path(base_record_path, index)
         records = _load_records_if_exists(record_path, turns)
         if records is None:
-            return record_path, [], False
+            if create_new_run_after_completion:
+                return record_path, [], False
+            return None, None, None
         if len(records) < len(turns):
             return record_path, records, True
         index += 1
 
-def _initialize_memory_for_mode(mode, client): 
-    if mode == "1":
-        memory = Memory("Exp")
-        path = _load_experiment_case()
-        
-        try:
-            with open(path, 'r') as f:
-                content = json.load(f)
-        except FileNotFoundError:
-            raise FileNotFoundError("Path not true")
-        except json.JSONDecodeError:
-            raise ValueError(f"{path} is corrupted")
-        ValidCase(content)
+def _initialize_experiment_case(path, create_new_run_after_completion=True):
+    memory = Memory("Exp")
 
-        base_record_path = path.replace(".json", "_ans.json")
-        record_path, records, reuse_messages = _resolve_experiment_record_path(base_record_path, content["turns"])
+    content = _load_experiment_case_content(path)
 
-        if not reuse_messages:
-            memory.CaseToMemory(content)
-        
-        return memory, content["turns"], record_path, records, reuse_messages
+    base_record_path = path.replace(".json", "_ans.json")
+    record_path, records, reuse_messages = _resolve_experiment_record_path(
+        base_record_path,
+        content["turns"],
+        create_new_run_after_completion=create_new_run_after_completion,
+    )
 
-    else:
-        memory = Memory("Norm")
-        agent_state = memory.get()["agent_state"]
+    if record_path is None:
+        return None, content["turns"], None, None, None
 
-        if not agent_state["role"].strip():
-            while True:
-                user_input = input("You want ai to play: ")
-                if user_input.strip():
-                    break
-            memory.set_role(user_input.strip())
+    if not reuse_messages:
+        memory.CaseToMemory(content)
 
-        role = memory.get()["agent_state"]["role"]
-        missing_fields = _missing_persona_fields(memory)
-        total_missing = len(missing_fields)
+    return memory, content["turns"], record_path, records, reuse_messages
 
-        for index, field in enumerate(missing_fields, start=1):
-            print(f"Generating missing persona field {index}/{total_missing}: {field}")
-            generated = _generate_persona_field(client, role, field)
-            if generated:
-                memory.add("agent_state", field, generated)
-                
-        return memory, None, None, None, True
-    
-def main():
+def _resolve_batch_experiment_cases(cases):
+    prepared_cases = []
+    for case_name, case_path in cases:
+        content = _load_experiment_case_content(case_path)
+        prepared_cases.append({
+            "case_name": case_name,
+            "case_path": case_path,
+            "content": content,
+            "base_record_path": case_path.replace(".json", "_ans.json"),
+        })
 
-    mode = _select_mode()
+    stage = 0
+    while True:
+        stage_states = []
+        all_complete = True
 
-    load_dotenv()
+        for prepared_case in prepared_cases:
+            turns = prepared_case["content"]["turns"]
+            record_path = _record_path_for_stage(prepared_case["base_record_path"], stage)
+            records = _load_records_if_exists(record_path, turns)
 
-    api_key=os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY is missing")
+            if records is None:
+                stage_states.append(("missing", record_path, []))
+                all_complete = False
+            elif len(records) < len(turns):
+                stage_states.append(("incomplete", record_path, records))
+                all_complete = False
+            else:
+                stage_states.append(("complete", record_path, records))
 
-    client = OpenAI(api_key = api_key, base_url = "https://api.zhizengzeng.com/v1/")
+        if all_complete:
+            stage += 1
+            continue
 
-    memory, turns, record_path, records, reuse_messages = _initialize_memory_for_mode(mode, client)
+        resolved_cases = []
+        for prepared_case, (state, record_path, records) in zip(prepared_cases, stage_states):
+            if state == "complete":
+                resolved_cases.append({
+                    "case_name": prepared_case["case_name"],
+                    "case_path": prepared_case["case_path"],
+                    "skip": True,
+                })
+                continue
 
-    messages_path = "case_studies/last_turn_messages"
+            reuse_messages = state == "incomplete"
+            resolved_cases.append({
+                "case_name": prepared_case["case_name"],
+                "case_path": prepared_case["case_path"],
+                "content": prepared_case["content"],
+                "turns": prepared_case["content"]["turns"],
+                "record_path": record_path,
+                "records": records,
+                "reuse_messages": reuse_messages,
+                "skip": False,
+            })
+
+        return resolved_cases
+
+def _initialize_normal_mode(client):
+    memory = Memory("Norm")
+    agent_state = memory.get()["agent_state"]
+
+    if not agent_state["role"].strip():
+        while True:
+            user_input = input("You want ai to play: ")
+            if user_input.strip():
+                break
+        memory.set_role(user_input.strip())
+
+    role = memory.get()["agent_state"]["role"]
+    missing_fields = _missing_persona_fields(memory)
+    total_missing = len(missing_fields)
+
+    for index, field in enumerate(missing_fields, start=1):
+        print(f"Generating missing persona field {index}/{total_missing}: {field}")
+        generated = _generate_persona_field(client, role, field)
+        if generated:
+            memory.add("agent_state", field, generated)
+
+    return memory
+
+def _initialize_messages(memory, reuse_messages, messages_path):
     if reuse_messages:
         try:
             with open(messages_path, "r") as f:
@@ -255,24 +318,33 @@ def main():
             {"role": "system", "content": system_prompt}
         ]
 
-    if mode == "1":
-        turn_index = len(records)
-        total_turns = len(turns)
+    return messages
+
+def _run_experiment_case(client, case_name, case_path, case_index, case_total, create_new_run_after_completion=True):
+    memory, turns, record_path, records, reuse_messages = _initialize_experiment_case(
+        case_path,
+        create_new_run_after_completion=create_new_run_after_completion,
+    )
+    if memory is None:
+        print(f"\n[case {case_index}/{case_total}] {case_name} | already complete, skipped")
+        return False
+
+    print(f"\n[case {case_index}/{case_total}] {case_name}")
+    messages_path = case_path.replace(".json", "_messages.json")
+    messages = _initialize_messages(memory, reuse_messages, messages_path)
+
+    turn_index = len(records)
+    total_turns = len(turns)
 
     try:
         while True:
-            if turns is not None:
-                if turn_index >= len(turns):
-                    break
-                user_input = turns[turn_index]
-                turn_index += 1
-                _render_progress(turn_index, total_turns, "sending user turn")
-            else:
-                user_input = input("You: ").strip()
-                if user_input.lower() in {"quit"}:
-                    break
-            
-            if(len(messages) > 20): 
+            if turn_index >= len(turns):
+                break
+            user_input = turns[turn_index]
+            turn_index += 1
+            _render_progress(turn_index, total_turns, "sending user turn")
+
+            if(len(messages) > 20):
                 del messages[1:3]
                 with open(messages_path, "w") as f:
                     json.dump(messages, f)
@@ -282,8 +354,7 @@ def main():
             if "I am" in user_input:
                 memory.add("user_state", "facts", user_input)
 
-            if turns is not None:
-                _render_progress(turn_index, total_turns, "waiting for assistant reply")
+            _render_progress(turn_index, total_turns, "waiting for assistant reply")
             response = _create_chat_completion(
                 client,
                 model="gpt-5-nano",
@@ -291,33 +362,166 @@ def main():
             )
 
             reply = response.choices[0].message.content
-            if mode != "1":
-                print("AI: ", reply)
-
             messages.append({"role": "assistant", "content": reply})
 
-            if turns is not None:
-                _render_progress(turn_index, total_turns, "updating memory")
+            _render_progress(turn_index, total_turns, "updating memory")
             new_mem = change(user_input, reply)
 
             if new_mem[0] != "none":
                 memory.add("agent_state", new_mem[0], new_mem[1])
-            
-            system_prompt = Build(memory.get())
 
+            system_prompt = Build(memory.get())
             messages[0] = {"role": "system", "content": system_prompt}
 
-            if mode == "1":
-                records.append({"User": user_input, "AI": reply, "new_memory": (new_mem[0], new_mem[1])})
-                _render_progress(turn_index, total_turns, "turn complete")
-                if turn_index % 10 == 0:
-                    with open(record_path, "w") as f:
-                        json.dump(records, f)
+            records.append({"User": user_input, "AI": reply, "new_memory": (new_mem[0], new_mem[1])})
+            _render_progress(turn_index, total_turns, "turn complete")
+            if turn_index % 10 == 0:
+                with open(record_path, "w") as f:
+                    json.dump(records, f)
     finally:
-        if mode == "1":
-            _finish_progress()
-            with open(record_path, "w") as f:
-                json.dump(records, f)
+        _finish_progress()
+        with open(record_path, "w") as f:
+            json.dump(records, f)
+    return True
+
+def _run_prepared_experiment_case(client, prepared_case, case_index, case_total):
+    if prepared_case["skip"]:
+        print(f"\n[case {case_index}/{case_total}] {prepared_case['case_name']} | already complete, skipped")
+        return False
+
+    case_name = prepared_case["case_name"]
+    case_path = prepared_case["case_path"]
+    memory = Memory("Exp")
+    if not prepared_case["reuse_messages"]:
+        memory.CaseToMemory(prepared_case["content"])
+    turns = prepared_case["turns"]
+    record_path = prepared_case["record_path"]
+    records = prepared_case["records"]
+    reuse_messages = prepared_case["reuse_messages"]
+
+    print(f"\n[case {case_index}/{case_total}] {case_name}")
+    messages_path = case_path.replace(".json", "_messages.json")
+    messages = _initialize_messages(memory, reuse_messages, messages_path)
+
+    turn_index = len(records)
+    total_turns = len(turns)
+
+    try:
+        while True:
+            if turn_index >= len(turns):
+                break
+            user_input = turns[turn_index]
+            turn_index += 1
+            _render_progress(turn_index, total_turns, "sending user turn")
+
+            if(len(messages) > 20):
+                del messages[1:3]
+                with open(messages_path, "w") as f:
+                    json.dump(messages, f)
+
+            messages.append({"role": "user", "content": user_input})
+
+            if "I am" in user_input:
+                memory.add("user_state", "facts", user_input)
+
+            _render_progress(turn_index, total_turns, "waiting for assistant reply")
+            response = _create_chat_completion(
+                client,
+                model="gpt-5-nano",
+                messages=messages
+            )
+
+            reply = response.choices[0].message.content
+            messages.append({"role": "assistant", "content": reply})
+
+            _render_progress(turn_index, total_turns, "updating memory")
+            new_mem = change(user_input, reply)
+
+            if new_mem[0] != "none":
+                memory.add("agent_state", new_mem[0], new_mem[1])
+
+            system_prompt = Build(memory.get())
+            messages[0] = {"role": "system", "content": system_prompt}
+
+            records.append({"User": user_input, "AI": reply, "new_memory": (new_mem[0], new_mem[1])})
+            _render_progress(turn_index, total_turns, "turn complete")
+            if turn_index % 10 == 0:
+                with open(record_path, "w") as f:
+                    json.dump(records, f)
+    finally:
+        _finish_progress()
+        with open(record_path, "w") as f:
+            json.dump(records, f)
+    return True
+
+def main():
+
+    mode = _select_mode()
+
+    load_dotenv()
+
+    api_key=os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY is missing")
+
+    client = OpenAI(api_key = api_key, base_url = "https://api.zhizengzeng.com/v1/")
+
+    if mode == "1":
+        cases = _load_experiment_cases()
+        total_cases = len(cases)
+        if total_cases == 1:
+            case_name, case_path = cases[0]
+            _run_experiment_case(
+                client,
+                case_name,
+                case_path,
+                1,
+                1,
+                create_new_run_after_completion=True,
+            )
+            return
+
+        prepared_cases = _resolve_batch_experiment_cases(cases)
+        for case_index, prepared_case in enumerate(prepared_cases, start=1):
+            _run_prepared_experiment_case(client, prepared_case, case_index, total_cases)
+        return
+
+    memory = _initialize_normal_mode(client)
+    messages_path = "case_studies/last_turn_messages"
+    messages = _initialize_messages(memory, True, messages_path)
+
+    while True:
+        user_input = input("You: ").strip()
+        if user_input.lower() in {"quit"}:
+            break
+
+        if(len(messages) > 20):
+            del messages[1:3]
+            with open(messages_path, "w") as f:
+                json.dump(messages, f)
+
+        messages.append({"role": "user", "content": user_input})
+
+        if "I am" in user_input:
+            memory.add("user_state", "facts", user_input)
+
+        response = _create_chat_completion(
+            client,
+            model="gpt-5-nano",
+            messages=messages
+        )
+
+        reply = response.choices[0].message.content
+        print("AI: ", reply)
+        messages.append({"role": "assistant", "content": reply})
+
+        new_mem = change(user_input, reply)
+
+        if new_mem[0] != "none":
+            memory.add("agent_state", new_mem[0], new_mem[1])
+
+        system_prompt = Build(memory.get())
+        messages[0] = {"role": "system", "content": system_prompt}
 
 if __name__ == "__main__":
     main()
